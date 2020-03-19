@@ -8,7 +8,6 @@ end
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 'outtype' tests.
-% VERIFY COMPLEX NUMBERS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function test_outtype_default(testCase)
 % We check the DEFAULT 'outtype' configuration using all the posible input and
@@ -28,6 +27,9 @@ function test_outtype_default(testCase)
                 % COMPLEX NUMBERS
                 % Notice that 'logical', 'char' nor 'duration' types are
                 % incompatible with complex numbers.
+                % Notice also sum() does not support the summation of
+                % complex integers, which means that they will be stopped
+                % by try/catch.
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -91,6 +93,9 @@ function test_outtype_double(testCase)
                 % COMPLEX NUMBERS
                 % Notice that 'logical', 'char' nor 'duration' types are
                 % incompatible with complex numbers.
+                % Notice also sum() does not support the summation of
+                % complex integers, which means that they will be stopped
+                % by try/catch.
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -118,7 +123,12 @@ function test_outtype_double(testCase)
                 fun_out = hours(out_number);
             end
 
-            verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
+            switch run 
+                case 1
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                case 2
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+            end
         end
     end
 
@@ -142,6 +152,10 @@ function test_outtype_native(testCase)
                 % COMPLEX NUMBERS
                 % Notice that 'logical', 'char' nor 'duration' types are
                 % incompatible with complex numbers.
+                % Notice also sum() does not support the summation of
+                % complex integers, which means that they will be stopped
+                % by try/catch.
+               
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -170,7 +184,12 @@ function test_outtype_native(testCase)
                 actual_out = out_number; 
             end
 
-            verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
+            switch run 
+                case 1
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                case 2
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+            end
         end
     
     end
