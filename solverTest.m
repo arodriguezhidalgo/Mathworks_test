@@ -13,129 +13,168 @@ end
 function test_outtype_default(testCase)
 % We check the DEFAULT 'outtype' configuration using all the posible input and
 % output combinations.
-    input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
-    out_number = 5;
-    input_vec = ones(out_number, 1);
-    
-    for i = input_types
-        i_type = i{1};
-        
-                        
-        switch i_type
-            case 'single'
-                % Single input -> Single output
-                actual_out = eval(sprintf('%s(%d)',i_type, out_number));   
-                eval_string = eval(sprintf('%s(ones(%d,1))',i_type, out_number));
-            case 'duration'
-                % Duration input -> Duration output                
-                actual_out = hours(out_number); 
-                eval_string = eval(sprintf('hours(ones(%d,1))', out_number));
-            otherwise
-                actual_out = double(out_number);
-                eval_string = eval(sprintf('%s(ones(%d,1))',i_type, out_number));                
+
+% We perform two runs:
+% * FIRST RUN: a vector of ones containing NON-COMPLEX numbers.
+% * SECOND RUN: same but using COMPLEX numbers.
+    for run = 1:2
+        switch run
+            case 1
+                % NON-COMPLEX NUMBERS
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
+                out_number = 5;
+                data = ones(out_number, 1);
+            case 2
+                % COMPLEX NUMBERS
+                % Notice that 'logical', 'char' nor 'duration' types are
+                % incompatible with complex numbers.
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
+                out_number = 1+2*j;
+                data = [1+j, j]; 
         end
-        
-        fun_out = sum(eval_string);        
-        verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
+
+        for i = input_types
+            i_type = i{1};
+
+
+            switch i_type
+                case 'single'
+                    % Single input -> Single output
+                    actual_out = single(out_number);
+                    eval_string = feval(i_type, data);
+                case 'duration'
+                    % Duration input -> Duration output                
+                    actual_out = hours(out_number); 
+                    eval_string = hours(data);
+                otherwise
+                    actual_out = double(out_number);
+                    eval_string = feval(i_type, data);
+            end
+
+            fun_out = sum(eval_string); 
+            
+            switch run 
+                case 1
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                case 2
+                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+            end
+        end
+
+
     end
     
-    % We also check some standard checks
+    % We also check some standard outputs, such as using an empty vector as
+    % data.
     actual_out = 0;
     fun_out = sum([]);
     verifyEqual(testCase, fun_out, actual_out, 'Output when data is empty');
-    
-    % We must check that the system works with complex numbers. However,
-    % these are not compatible with 'logical', 'char' nor 'duration'.
-    % Consequently, for such datatype there are no complex numbers,
-    % and they are out of this analysis. We study the rest of datatype
-    % complex numbers.
-    input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};
-    
-    out_number = 1+2*j;
-    input_vec = [1+j, j]; 
-    for i = input_types
-        i_type = i{1};
-        out_number = 1+2*j;
-        
-        
-        switch i_type
-            case 'single'
-                % Single input -> Single output
-                actual_out = single(out_number);
-                eval_string = single(input_vec);
-            otherwise
-                actual_out = double(out_number);                
-                eval_string = feval(i_type, input_vec);
-        end
-        
-        fun_out = sum(eval_string);        
-        verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' COMPLEX vector fails.'])
-    end
-    
+
     
 end
 
 function test_outtype_double(testCase)
 % We check the DOUBLE 'outtype' configuration using all the posible input and
 % output combinations.
-    input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
-    
-    for i = input_types
-        i_type = i{1};
-        out_number = 5;
-                        
-        switch i_type
-            case 'duration'
-                % Duration input -> ERROR
-                actual_out = hours(out_number); 
-                eval_string = eval(sprintf('hours(ones(%d,1))', out_number));                
-            otherwise
-                actual_out = double(out_number);
-                eval_string = eval(sprintf('%s(ones(%d,1))',i_type, out_number));                    
+
+% We perform two runs:
+% * FIRST RUN: a vector of ones containing NON-COMPLEX numbers.
+% * SECOND RUN: same but using COMPLEX numbers.
+    for run = 1:2
+        switch run
+            case 1
+                % NON-COMPLEX NUMBERS
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
+                out_number = 5;
+                data = ones(out_number, 1);
+            case 2
+                % COMPLEX NUMBERS
+                % Notice that 'logical', 'char' nor 'duration' types are
+                % incompatible with complex numbers.
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
+                out_number = 1+2*j;
+                data = [1+j, j]; 
         end
-        
-        try  
-            fun_out = sum(eval_string,'double');        
-        catch
-            % We expect that the output for a 'duration' input is an error.
-            % We model it here.
-            fun_out = hours(out_number);
+
+        for i = input_types
+            i_type = i{1};
+
+
+            switch i_type
+                case 'duration'
+                    % Duration input -> ERROR
+                    actual_out = hours(out_number); 
+                    eval_string = hours(data);                
+                otherwise
+                    actual_out = double(out_number);
+                    eval_string = feval(i_type, data);                
+            end
+
+            try  
+                fun_out = sum(eval_string,'double');        
+            catch
+                % We expect that the output for a 'duration' input is an error.
+                % We model it here.
+                fun_out = hours(out_number);
+            end
+
+            verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
         end
-        
-        verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
     end
+
 end
 
 function test_outtype_native(testCase)
 % We check the NATIVE 'outtype' configuration using all the posible input and
 % output combinations.
-    input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
+
+% We perform two runs:
+% * FIRST RUN: a vector of ones containing NON-COMPLEX numbers.
+% * SECOND RUN: same but using COMPLEX numbers.
+    for run = 1:2    
+        switch run
+            case 1
+                % NON-COMPLEX NUMBERS
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64','logical','char','duration'};
+                out_number = 5;
+                data = ones(out_number, 1);
+            case 2
+                % COMPLEX NUMBERS
+                % Notice that 'logical', 'char' nor 'duration' types are
+                % incompatible with complex numbers.
+                input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
+                out_number = 1+2*j;
+                data = [1+j, j]; 
+        end
+        
+        
+        for i = input_types
+            i_type = i{1};
+
+            switch i_type
+                case 'duration'
+                    % Duration input -> Duration output
+                    actual_out = hours(out_number); 
+                    eval_string = hours(data);                             
+                otherwise
+                    actual_out = feval(i_type, out_number);
+                    eval_string = feval(i_type, data);                    
+            end
+
+            try  
+                fun_out = sum(eval_string,'native');        
+            catch
+                % We expect that the output for a 'char' input is an error.
+                % We model it here.
+                fun_out = out_number;
+                actual_out = out_number; 
+            end
+
+            verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
+        end
     
-    for i = input_types
-        i_type = i{1};
-        out_number = 5;
-                        
-        switch i_type
-            case 'duration'
-                % Duration input -> ERROR
-                actual_out = hours(out_number); 
-                eval_string = eval(sprintf('hours(ones(%d,1))', out_number));                
-            otherwise
-                actual_out = eval(sprintf('%s(%d)',i_type, out_number));
-                eval_string = eval(sprintf('%s(ones(%d,1))',i_type, out_number));                    
-        end
-        
-        try  
-            fun_out = sum(eval_string,'native');        
-        catch
-            % We expect that the output for a 'char' input is an error.
-            % We model it here.
-            fun_out = out_number;
-            actual_out = out_number; 
-        end
-        
-        verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails.'])
     end
+    % XXXX COMPLEX NUMBERS
 end
 
 %%
@@ -289,17 +328,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Function args tests.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% function test_function_args(testCase)
-% end
-% 
-% function test_incompatible_input(testCase)
-% %     data = {};
-% %     fun_out = sum(data);
-% %     actual_out = 0;
-% %     verifyEqual(testCase, fun_out, actual_out,'Sum of empty vector fails.')
-% 
-% end
-
 function test_wrong_input_datatype(testCase)
     % We check here if the function produces an 'error' outcome when the input
     % is not numeric. We do this using a cell that contains a vector inside.
