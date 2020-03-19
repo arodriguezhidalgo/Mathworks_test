@@ -29,7 +29,8 @@ function test_outtype_default(testCase)
                 % incompatible with complex numbers.
                 % Notice also sum() does not support the summation of
                 % complex integers, which means that they will be stopped
-                % by try/catch.
+                % by try/catch. That is, it only works with single and
+                % double complex.
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -57,9 +58,9 @@ function test_outtype_default(testCase)
             
             switch run 
                 case 1
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_DEF. Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
                 case 2
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_DEF. Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
             end
         end
 
@@ -70,9 +71,14 @@ function test_outtype_default(testCase)
     % data.
     actual_out = 0;
     fun_out = sum([]);
-    verifyEqual(testCase, fun_out, actual_out, 'Output when data is empty');
+    verifyEqual(testCase, fun_out, actual_out, 'OUTTYPE_DEF. Output when data is empty');
 
-    
+    % We also test an arbitrarily big matrix to make sure that the function
+    % works.
+    data = ones(ones(1,10)*5);
+    fun_out = sum(data,'all');
+    actual_out = prod(size(data));
+    verifyEqual(testCase, fun_out, actual_out, 'OUTTYPE_DEF. Using huge matrix produced unexpected results');
 end
 
 function test_outtype_double(testCase)
@@ -95,7 +101,8 @@ function test_outtype_double(testCase)
                 % incompatible with complex numbers.
                 % Notice also sum() does not support the summation of
                 % complex integers, which means that they will be stopped
-                % by try/catch.
+                % by try/catch. That is, it only works with single and
+                % double complex.
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -125,9 +132,9 @@ function test_outtype_double(testCase)
 
             switch run 
                 case 1
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_DOUB. Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
                 case 2
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_DOUB. Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
             end
         end
     end
@@ -154,8 +161,8 @@ function test_outtype_native(testCase)
                 % incompatible with complex numbers.
                 % Notice also sum() does not support the summation of
                 % complex integers, which means that they will be stopped
-                % by try/catch.
-               
+                % by try/catch. That is, it only works with single and
+                % double complex.               
                 input_types = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'};    
                 out_number = 1+2*j;
                 data = [1+j, j]; 
@@ -186,74 +193,89 @@ function test_outtype_native(testCase)
 
             switch run 
                 case 1
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_NAT. Sum of ',i_type, ' vector fails. NON-COMPLEX numbers.'])
                 case 2
-                    verifyEqual(testCase, fun_out, actual_out,['Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
+                    verifyEqual(testCase, fun_out, actual_out,['OUTTYPE_NAT. Sum of ',i_type, ' vector fails. COMPLEX numbers.'])
             end
         end
     
     end
-    % XXXX COMPLEX NUMBERS
+
 end
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 'dim' tests.
-% VERIFY COMPLEX NUMBERS
-% CHECK EVERY INPUT TYPE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function test_dim(testCase)
-% Test the size of the data matrix. We use empty matrices as well as huge
-% ones.
+    % Test the dim parameter. We use a ones matrix of (4x3x2) for testing.
     data = ones(4,3,2);
     [r, c, d] = size(data);
     
-    % It should work with any dimension from 1 to 3 for this example.
-    for i = 1:length(size(data))         
-        fun_out = sum(data,i);
-        verifyEqual(testCase,fun_out(1), size(data, i));
+    % Sum should work with any dimension from 1 to 3 for this example. The
+    % only condition is that values for 'dim' are positive, integers or 
+    % rounded float numbers.
+    for i = {'double','single','int8','int16','int32','int64','uint8','uint16','uint32', 'uint64'}
+        i_type = i{1};
+        
+        for i = 1:length(size(data))         
+            fun_out = sum(data,feval(i_type,i));
+            verifyEqual(testCase,fun_out(1), size(data, i),sprintf('DIM. Sum failed using %s datatype for dim.',i_type));
+        end
     end
+    % It should work with logical, although dim is always going to be 1.
+    verifyEqual(testCase, sum(data, logical(3)), ones(1,c,d)*r,'DIM. Logical test failed');
+        
     
-    % We should get an error if we use a float or char 'dim' value
+    % Then, we check some exceptional cases that should throw an error.    
     actual_out = 'error';
+    % ** It should fail if we use duration data.
+    try sum(data,hours(1)); catch fun_out = 'error'; end
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. Tried to use duration type for dim');
+    
+    % ** We should get an error if we use an unrounded float or char 'dim' 
+    % value.   
     try sum(data,'b'); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Mistake using b as a parameter for sum');
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. Mistake using b as a parameter for sum');
     
     try sum(data, 1.5); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Error. A float dim number was used');
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. A float dim number was used');
         
-    % We should also verify that it does not work with a negative 'dim'
+    % ** We should also verify that it does not work with a negative 'dim'
     % value.
     try sum(data, -1); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Error. A float dim number was used');
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. A float dim number was used');
     
-    % In fact, it should not work if we set dim=0.
+    % ** In fact, it should not work if we set dim=0.
     try sum(data, 0); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Error. A float dim number was used');
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. A float dim number was used');
     
-    % Here is an exceptional case, which is the term 'a' that is
+    % ** Here is another exceptional case, which is the term 'a' that is
     % equivalent to 'all'.
-    verifyEqual(testCase, sum(data,'a'), prod(size(data)));      
+    verifyEqual(testCase, sum(data,'a'), prod(size(data)),'DIM. Term a (from all) failed');      
     
     
-    % We also check out the result of adding every element of the matrix
-    verifyEqual(testCase, sum(data,'all'), prod(size(data)));
+    % ** We also check out the result of adding every element of the matrix
+    verifyEqual(testCase, sum(data,'all'), prod(size(data)), 'DIM. Term all failed');
     
-    % If we use a 'dim' bigger than 3, the function should give the
+    % ** If we use a 'dim' bigger than 3, the function should give the
     % original vector.
-    verifyEqual(testCase, sum(data,5), data);       
+    verifyEqual(testCase, sum(data,5), data, 'DIM. dim > ndim(data) failed');       
     
-    % If the size of data is 1, it should also return the original vector.
+    % ** If the size of data is 1, it should also return the original vector.
     data = [15];
-    verifyEqual(testCase, sum(data), data);      
+    verifyEqual(testCase, sum(data), data, 'DIM. Sum of a single number failed');      
+    
+    % ** Sum should fail if we use a complex number as dim.
+    try sum(data, 1+j); catch fun_out = 'error'; end
+    verifyEqual(testCase, fun_out, actual_out, 'DIM. Sum using complex number for dim produced unexpected result');
+
 
 end
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 'vecdim' tests.
-% VERIFY COMPLEX NUMBERS
-% CHECK EVERY INPUT TYPE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function test_vecdim(testCase)
     % First, we check that it works normally using different combinations
@@ -263,78 +285,99 @@ function test_vecdim(testCase)
     
     fun_out = sum(data, [1,3]);
     actual_out = ones(1,c)*r*d;
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using vecdim=[1,3] failed');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using vecdim=[1,3] failed');
     
     fun_out = sum(data, [1,2]);
     actual_out = ones(1,1,d)*r*c;
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using vecdim=[1,2] failed');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using vecdim=[1,2] failed');
     
     fun_out = sum(data, [2,3]);
     actual_out = ones(r,1)*c*d;
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using vecdim=[2,3] failed');    
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using vecdim=[2,3] failed');    
     
     fun_out = sum(data, [1,2,3]);
     actual_out = prod(size(data));
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using vecdim=[1,2,3] failed');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using vecdim=[1,2,3] failed');
     
     % Moreover, the order of vecdim should be irrelevant.
     fun_out = sum(data, [3,2]);
     actual_out = ones(r,1)*d*c;
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using UNSORTED vecdim failed');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using UNSORTED vecdim failed');
     
     % If we use vecdim with numbers bigger than ndims(data) it should
     % return the original matrix.
     fun_out = sum(data, [4,5]);
-    verifyEqual(testCase, fun_out, data, 'Sum using vecdim > ndims(data)');
+    verifyEqual(testCase, fun_out, data, 'VECDIM. Sum using vecdim > ndims(data)');
     
     % On the contrary, if we use an element bigger than ndims(data) and
     % another one within the dimensions of the matrix, it should perform
     % the sum operation along the latter dimension.
     fun_out = sum(data, [5,3]);
     actual_out = ones(r,c,1)*d;
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using vecdim(n) <= ndims(data) and vecdim(n+1) > ndims(data)')
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using vecdim(n) <= ndims(data) and vecdim(n+1) > ndims(data)')
+    
+    % We also make sure that it works with vecdim considering different
+    % types of integers and double.
+    for i = {'single','double','int8','int16','int32','int64','uint8','uint16','uint32','uint64'}
+        eval_string = feval(i{1},[1,3]);
+        fun_out = sum(data, eval_string);
+        actual_out = ones(1,c)*r*d;
+        verifyEqual(testCase, fun_out, actual_out, sprintf('VECDIM. Sum using vecdim with type %s failed',i{1}));
+    end
     
     % Then, we check some exceptional cases that should throw an error.
     % ** Check if vecdims has more elements than size(data). 
     actual_out = prod(size(data));
     fun_out = sum(data, [1:6]);
-    verifyEqual(testCase, fun_out, actual_out, 'Sum of vecdim larger than ndims(data)');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum of vecdim larger than ndims(data)');
     
     % ** Check if vecdims is an empty vector.
     actual_out = ones(1,c,d)*r;
     fun_out = sum(data, []);
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using EMPTY vecdim');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using EMPTY vecdim');
        
     % ** NEGATIVE elements in vecdim.
     actual_out = 'error';
     try sum(data, [-1, 2]); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a NEGATIVE element in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a NEGATIVE element in vecdim didnt throw error.');
     
     % ** ZERO element in vecdim.
     try sum(data, [2,0]); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a ZERO element in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a ZERO element in vecdim didnt throw error.');
     
     % ** CHAR element in vecdim.
     try sum(data, ['a',3]); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a CHAR element in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a CHAR element in vecdim didnt throw error.');
     
     % ** FLOAT element in vecdim.
     try sum(data, [1, 2.5]); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a FLOAT element in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a FLOAT element in vecdim didnt throw error.');
         
     % ** MATRIX used as vecdim.
     try sum(data, reshape(1:4,[2,2])); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a MATRIX in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a MATRIX in vecdim didnt throw error.');
         
     % ** Check if vecdim receives an incompatible structure. We use a
     % cell, but there are other alternatives.
     try sum(data, {1,2}); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using a CELL in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using a CELL in vecdim didnt throw error.');
     
     % ** Check if vecdim contains nonunique elements.
     try sum(data, [3,1,3]); catch fun_out = 'error'; end
-    verifyEqual(testCase, fun_out, actual_out, 'Sum using NONUNIQUE ELEMENTS in vecdim didnt throw error.');
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Sum using NONUNIQUE ELEMENTS in vecdim didnt throw error.');
     
+    % ** Sum should fail if we use a vecdim with a complex number
+    try sum(data, [1+j, 2]); catch fun_out = 'error'; end
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Using complex vecdim produced unexpected results')
+    
+    % ** Sum should fail if vecdim contains the binarized version of a
+    % vector such as [1,2], since it turns into [1,1]. The same thing
+    % occurs with duration data.
+    try sum(data, logical([1,2])); catch fun_out = 'error'; end
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Tried to binarize vecdim and sum failed')
+    
+    try sum(data, hours([1,2])); catch fun_out = 'error'; end
+    verifyEqual(testCase, fun_out, actual_out, 'VECDIM. Tried to use a duration-like vecdim and sum failed')
 end
 
 %%
@@ -367,4 +410,6 @@ function test_wrong_input_datatype(testCase)
     try sum(1:5, 2,'double',0); catch fun_out = 'error'; end
     verifyEqual(testCase, fun_out, actual_out, 'Sum using integer nanflag didnt throw error');
     
+    % Sum should fail if we provide more than 3 input arguments (excluding
+    % the input vector/matrix).
 end
