@@ -1,3 +1,6 @@
+% Antonio Rodríguez Hidalgo
+% arodh91@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function tests = solverTest
     tests = functiontests(localfunctions);
 end
